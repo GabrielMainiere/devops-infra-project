@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"wheater/cmd/database"
 	"wheater/cmd/models"
 
 	"github.com/joho/godotenv"
@@ -38,7 +39,6 @@ func GetWheater(c echo.Context) error {
 		log.Println("Failed to read the response body", err)
 		return echo.NewHTTPError(http.StatusInternalServerError)
 	}
-	defer resp.Body.Close()
 
 	if err = json.Unmarshal(body, &weatherData); err != nil {
 		log.Println("Failed to decode response body")
@@ -48,6 +48,11 @@ func GetWheater(c echo.Context) error {
 	if weatherData.Name == "" {
 		log.Println("City not found")
 		return echo.NewHTTPError(http.StatusNotFound)
+	}
+
+	if err := database.SaveWeatherSearch(c.Request().Context(), weatherData); err != nil {
+		log.Println("Failed to save weather search", err)
+		return echo.NewHTTPError(http.StatusInternalServerError)
 	}
 
 	return c.JSON(http.StatusOK, weatherData)
