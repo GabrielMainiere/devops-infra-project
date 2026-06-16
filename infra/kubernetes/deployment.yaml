@@ -27,7 +27,7 @@ spec:
           image: mainiere/weather-web:latest
           imagePullPolicy: Always
           ports:
-            - containerPort: 80'
+            - containerPort: 80
 
           resources:
             requests:
