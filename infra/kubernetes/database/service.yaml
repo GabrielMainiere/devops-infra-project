@@ -1,0 +1,67 @@
+apiVersion: v1
+kind: Service
+
+metadata:
+  name: postgres-primary-headless
+  namespace: weather-app
+
+spec:
+  clusterIP: None
+  selector:
+    app: postgres
+    role: primary
+  ports:
+    - name: postgresql
+      port: 5432
+      targetPort: 5432
+---
+apiVersion: v1
+kind: Service
+
+metadata:
+  name: postgres-primary
+  namespace: weather-app
+
+spec:
+  type: ClusterIP
+  selector:
+    app: postgres
+    role: primary
+  ports:
+    - name: postgresql
+      port: 5432
+      targetPort: 5432
+---
+apiVersion: v1
+kind: Service
+
+metadata:
+  name: postgres-read-headless
+  namespace: weather-app
+
+spec:
+  clusterIP: None
+  selector:
+    app: postgres
+    role: read
+  ports:
+    - name: postgresql
+      port: 5432
+      targetPort: 5432
+---
+apiVersion: v1
+kind: Service
+
+metadata:
+  name: postgres-read
+  namespace: weather-app
+
+spec:
+  type: ClusterIP
+  selector:
+    app: postgres
+    role: read
+  ports:
+    - name: postgresql
+      port: 5432
+      targetPort: 5432
