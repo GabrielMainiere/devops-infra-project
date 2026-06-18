@@ -16,3 +16,17 @@ module "network" {
   aks_subnet_address_prefixes = var.aks_subnet_address_prefixes
   tags                        = local.common_tags
 }
+
+module "compute" {
+  source = "./modules/compute"
+
+  project_name        = var.project_name
+  environment         = var.environment
+  location            = var.location
+  resource_group_name = module.network.resource_group_name
+  subnet_id           = module.network.vm_subnet_id
+  vm_size             = var.vm_size
+  admin_username      = var.admin_username
+  ssh_public_key_path = var.ssh_public_key_path
+  tags                = local.common_tags
+}

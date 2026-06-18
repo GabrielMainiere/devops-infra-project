@@ -9,7 +9,7 @@ variable "environment" {
 }
 
 variable "location" {
-    description = "Localizacão dos recursos"
+    description = "Regiao da Azure"
     type = string
 }
 

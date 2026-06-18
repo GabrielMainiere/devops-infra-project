@@ -43,3 +43,21 @@ variable "tags" {
     owner   = "student"
   }
 }
+
+variable "vm_size" {
+  description = "Tamanho da VM da API e Gateway"
+  type        = string
+  default     = "Standard_D2s_v3"
+}
+
+variable "admin_username" {
+  description = "Usuario administrador da VM"
+  type        = string
+  default     = "azureuser"
+}
+
+variable "ssh_public_key_path" {
+  description = "Caminho da chave publica SSH usada para acessar a VM"
+  type        = string
+  default     = "C:/Users/gsmai/.ssh/id_azure_terraform.pub"
+}
