@@ -30,3 +30,16 @@ module "compute" {
   ssh_public_key_path = var.ssh_public_key_path
   tags                = local.common_tags
 }
+
+module "aks" {
+  source = "./modules/aks"
+
+  project_name        = var.project_name
+  environment         = var.environment
+  location            = var.location
+  resource_group_name = module.network.resource_group_name
+  subnet_id           = module.network.aks_subnet_id
+  node_count          = var.aks_node_count
+  node_vm_size        = var.aks_node_vm_size
+  tags                = local.common_tags
+}

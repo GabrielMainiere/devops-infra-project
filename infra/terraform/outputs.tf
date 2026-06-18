@@ -42,3 +42,13 @@ output "api_gateway_admin_username" {
   description = "Usuario administrador da VM"
   value       = module.compute.admin_username
 }
+
+output "aks_cluster_name" {
+  description = "Nome do cluster AKS"
+  value       = module.aks.cluster_name
+}
+
+output "aks_resource_group_name" {
+  description = "Resource Group do AKS"
+  value       = module.aks.resource_group_name
+}

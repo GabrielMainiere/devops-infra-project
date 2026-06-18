@@ -61,3 +61,15 @@ variable "ssh_public_key_path" {
   type        = string
   default     = "C:/Users/gsmai/.ssh/id_azure_terraform.pub"
 }
+
+variable "aks_node_count" {
+  description = "Quantidade de worker nodes"
+  type        = number
+  default     = 2
+}
+
+variable "aks_node_vm_size" {
+  description = "Tamanho das VMs do AKS"
+  type        = string
+  default     = "Standard_D2s_v3"
+}
