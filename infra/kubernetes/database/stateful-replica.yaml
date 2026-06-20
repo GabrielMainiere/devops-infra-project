@@ -18,6 +18,9 @@ spec:
         app: postgres
         role: read
     spec:
+      securityContext:
+        fsGroup: 1001
+        fsGroupChangePolicy: "OnRootMismatch"
       containers:
         - name: postgres
           image: bitnamilegacy/postgresql:16
