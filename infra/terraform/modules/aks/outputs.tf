@@ -13,8 +13,12 @@ output "resource_group_name" {
   value       = azurerm_kubernetes_cluster.aks.resource_group_name
 }
 
-output "kube_config" {
-  description = "Kubeconfig do AKS"
-  value       = azurerm_kubernetes_cluster.aks.kube_config_raw
-  sensitive   = true
+output "web_app_routing_identity_object_id" {
+  description = "Object ID da identidade gerenciada do Web App Routing"
+  value       = azurerm_kubernetes_cluster.aks.web_app_routing[0].web_app_routing_identity[0].object_id
+}
+
+output "web_app_routing_identity_client_id" {
+  description = "Client ID da identidade gerenciada do Web App Routing"
+  value       = azurerm_kubernetes_cluster.aks.web_app_routing[0].web_app_routing_identity[0].client_id
 }

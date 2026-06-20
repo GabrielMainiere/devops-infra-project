@@ -37,3 +37,8 @@ variable "tags" {
   description = "Tags dos recursos"
   type        = map(string)
 }
+
+variable "cluster_identity_id" {
+  description = "ID da identidade gerenciada usada pelo AKS"
+  type        = string
+}

@@ -10,17 +10,23 @@ resource "azurerm_kubernetes_cluster" "aks" {
     vm_size        = var.node_vm_size
     vnet_subnet_id = var.subnet_id
 
-    type                = "VirtualMachineScaleSets"
+    type = "VirtualMachineScaleSets"
   }
 
   identity {
-    type = "SystemAssigned"
+    type         = "UserAssigned"
+    identity_ids = [var.cluster_identity_id]
   }
 
   network_profile {
     network_plugin    = "azure"
     load_balancer_sku = "standard"
     outbound_type     = "loadBalancer"
+  }
+
+  web_app_routing {
+    dns_zone_ids             = []
+    default_nginx_controller = "Internal"
   }
 
   tags = var.tags

@@ -41,5 +41,23 @@ module "aks" {
   subnet_id           = module.network.aks_subnet_id
   node_count          = var.aks_node_count
   node_vm_size        = var.aks_node_vm_size
+  cluster_identity_id = azurerm_user_assigned_identity.aks.id
   tags                = local.common_tags
+
+  depends_on = [
+    azurerm_role_assignment.aks_network_contributor
+  ]
+}
+
+resource "azurerm_user_assigned_identity" "aks" {
+  name                = "id-aks-${var.project_name}-${var.environment}"
+  location            = var.location
+  resource_group_name = module.network.resource_group_name
+  tags                = local.common_tags
+}
+
+resource "azurerm_role_assignment" "aks_network_contributor" {
+  scope                = module.network.vnet_id
+  role_definition_name = "Network Contributor"
+  principal_id         = azurerm_user_assigned_identity.aks.principal_id
 }

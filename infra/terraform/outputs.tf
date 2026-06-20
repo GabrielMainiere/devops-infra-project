@@ -52,3 +52,13 @@ output "aks_resource_group_name" {
   description = "Resource Group do AKS"
   value       = module.aks.resource_group_name
 }
+
+output "web_app_routing_identity_object_id" {
+  description = "Object ID da identidade do Web App Routing"
+  value       = module.aks.web_app_routing_identity_object_id
+}
+
+output "web_app_routing_identity_client_id" {
+  description = "Client ID da identidade do Web App Routing"
+  value       = module.aks.web_app_routing_identity_client_id
+}
