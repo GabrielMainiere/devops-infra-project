@@ -23,22 +23,22 @@ output "aks_subnet_id" {
   value       = module.network.aks_subnet_id
 }
 
-output "api_gateway_vm_name" {
-  description = "Nome da VM da API e Gateway"
+output "gateway_vm_name" {
+  description = "Nome da VM do Front e Gateway"
   value       = module.compute.vm_name
 }
 
-output "api_gateway_public_ip" {
-  description = "IP publico da VM da API e Gateway"
+output "gateway_public_ip" {
+  description = "IP publico da VM do Front e Gateway"
   value       = module.compute.public_ip_address
 }
 
-output "api_gateway_private_ip" {
-  description = "IP privado da VM da API e Gateway"
+output "gateway_private_ip" {
+  description = "IP privado da VM do Front e Gateway"
   value       = module.compute.private_ip_address
 }
 
-output "api_gateway_admin_username" {
+output "gateway_admin_username" {
   description = "Usuario administrador da VM"
   value       = module.compute.admin_username
 }
