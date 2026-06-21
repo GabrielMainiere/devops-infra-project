@@ -9,3 +9,4 @@ tfplan
 kubeconfig-ci
 *.kubeconfig
 infra/ansible/hosts.ci.ini
+infra/kubernetes/api-secret.yaml

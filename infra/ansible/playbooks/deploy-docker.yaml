@@ -1,13 +1,11 @@
-- name: Deploy da API e Gateway na VM da Azure
+- name: Deploy do Frontend e Gateway na VM da Azure
   hosts: apis
   become: true
 
   vars:
-    weather_api_image: mainiere/weather-api:latest
-    weather_api_container_name: weather-api
-    weather_api_port: 8002
-    weather_api_key: "{{ lookup('env', 'OPENWEATHER_API_KEY') }}"
-    weather_db_url: "{{ lookup('env', 'WEATHER_DB_URL') }}"
+    weather_web_image: mainiere/weather-web:latest
+    weather_web_container_name: weather-web
+    weather_web_port: 8080
 
   tasks:
     - name: Atualizar pacotes do sistema
@@ -35,35 +33,22 @@
         state: started
         enabled: yes
 
-    - name: Criar diretorio da API
-      file:
-        path: /opt/weather-api
-        state: directory
-        mode: "0755"
+    - name: Baixar imagem Docker do frontend
+      shell: docker pull {{ weather_web_image }}
 
-    - name: Criar arquivo .env da API
-      copy:
-        dest: /opt/weather-api/.env
-        mode: "0600"
-        content: |
-          API_KEY={{ weather_api_key }}
-          DB_URL={{ weather_db_url }}
-      no_log: true
+    - name: Remover container antigo do frontend
+      shell: docker rm -f {{ weather_web_container_name }} || true
 
-    - name: Baixar imagem Docker da API
-      shell: docker pull {{ weather_api_image }}
-
-    - name: Remover container antigo da API
-      shell: docker rm -f {{ weather_api_container_name }} || true
-
-    - name: Subir container da API
+    - name: Subir container do frontend
       shell: |
         docker run -d \
-          --name {{ weather_api_container_name }} \
+          --name {{ weather_web_container_name }} \
           --restart unless-stopped \
-          -p 127.0.0.1:{{ weather_api_port }}:8002 \
-          -v /opt/weather-api/.env:/app/.env:ro \
-          {{ weather_api_image }}
+          -p 127.0.0.1:{{ weather_web_port }}:80 \
+          {{ weather_web_image }}
+
+    - name: Remover container antigo da API na VM
+      shell: docker rm -f weather-api || true
 
     - name: Copiar configuracao do Nginx Gateway
       copy:
@@ -91,7 +76,12 @@
         name: nginx
         state: restarted
 
-    - name: Validar health check da API
+    - name: Validar frontend local
       uri:
-        url: http://127.0.0.1:8002/health
+        url: http://127.0.0.1:8080
+        status_code: 200
+
+    - name: Validar API via gateway interno do AKS
+      uri:
+        url: http://10.20.2.62/health
         status_code: 200
