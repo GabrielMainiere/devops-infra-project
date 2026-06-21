@@ -3,17 +3,11 @@
   connection: local
 
   vars:
-    aks_resource_group_name: weather-devops-dev-rg
-    aks_cluster_name: aks-weather-devops-dev
     project_root: "{{ playbook_dir }}/../../.."
 
   tasks:
-    - name: Obter credenciais do AKS
-      shell: |
-        az aks get-credentials \
-          --resource-group {{ aks_resource_group_name }} \
-          --name {{ aks_cluster_name }} \
-          --overwrite-existing
+    - name: Verificar acesso ao AKS
+      shell: kubectl get nodes
 
     - name: Aplicar namespace
       shell: kubectl apply -f "{{ project_root }}/infra/kubernetes/namespace.yaml"

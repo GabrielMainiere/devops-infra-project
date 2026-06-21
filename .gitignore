@@ -6,3 +6,6 @@ node_modules
 tfplan
 *.tfvars
 .terraform.lock.hcl
+kubeconfig-ci
+*.kubeconfig
+infra/ansible/hosts.ci.ini
