@@ -1,0 +1,163 @@
+name: weather-devops-cicd
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    name: Testes unitarios
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: api/go.mod
+
+      - name: Testar API Go
+        run: |
+          cd api
+          go mod download
+          go test ./...
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Testar frontend
+        run: |
+          cd web
+          npm ci
+          npm test
+
+  docker:
+    name: Docker, Trivy e Push
+    runs-on: ubuntu-latest
+    needs: [tests]
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build imagem da API
+        run: docker build -t weather-api:${{ github.sha }} -f api/Dockerfile api
+
+      - name: SAST com Trivy na imagem da API
+        uses: aquasecurity/trivy-action@0.35.0
+        with:
+          image-ref: weather-api:${{ github.sha }}
+          format: table
+          exit-code: 1
+          ignore-unfixed: true
+          vuln-type: os,library
+          severity: CRITICAL,HIGH
+
+      - name: Login Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Push imagem da API
+        run: |
+          docker tag weather-api:${{ github.sha }} ${{ secrets.DOCKERHUB_USERNAME }}/weather-api:latest
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/weather-api:latest
+
+      - name: Build e push imagem do frontend
+        run: |
+          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/weather-web:latest -f web/Dockerfile web
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/weather-web:latest
+
+  deploy:
+    name: Deploy com Ansible
+    runs-on: ubuntu-latest
+    needs: docker
+    if: github.ref == 'refs/heads/main'
+
+    env:
+      ANSIBLE_HOST_KEY_CHECKING: "False"
+      OPENWEATHER_API_KEY: ${{ secrets.OPENWEATHER_API_KEY }}
+      WEATHER_DB_URL: ${{ secrets.WEATHER_DB_URL }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Instalar Ansible e kubectl
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ansible
+          curl -LO "https://dl.k8s.io/release/v1.34.0/bin/linux/amd64/kubectl"
+          chmod +x kubectl
+          sudo mv kubectl /usr/local/bin/kubectl
+
+      - name: Configurar kubeconfig do AKS
+        run: |
+          mkdir -p ~/.kube
+          echo "${{ secrets.KUBE_CONFIG_DATA }}" | base64 -d > ~/.kube/config
+          chmod 600 ~/.kube/config
+          kubectl get nodes
+
+      - name: Configurar chave SSH da VM
+        run: |
+          mkdir -p ~/.ssh
+          printf "%s\n" "${{ secrets.AZURE_VM_SSH_PRIVATE_KEY }}" > ~/.ssh/id_azure_terraform
+          chmod 700 ~/.ssh
+          chmod 600 ~/.ssh/id_azure_terraform
+
+      - name: Criar inventory temporario
+        run: |
+          cat > infra/ansible/hosts.ci.ini <<EOF
+          [apis]
+          weather-vm ansible_host=${{ secrets.API_GATEWAY_PUBLIC_IP }} ansible_user=azureuser ansible_ssh_private_key_file=~/.ssh/id_azure_terraform
+
+          [local]
+          localhost ansible_connection=local
+          EOF
+
+      - name: Deploy Kubernetes
+        run: |
+          cd infra/ansible
+          ansible-playbook -i hosts.ci.ini playbooks/deploy-k8s.yaml
+
+      - name: Deploy API e Gateway
+        run: |
+          cd infra/ansible
+          ansible-playbook -i hosts.ci.ini playbooks/deploy-docker.yaml
+
+  dast:
+    name: DAST com OWASP ZAP
+    runs-on: ubuntu-latest
+    needs: deploy
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: OWASP ZAP baseline contra gateway
+        uses: zaproxy/action-baseline@v0.14.0
+        with:
+          target: ${{ secrets.GATEWAY_URL }}
+          allow_issue_writing: false
+          fail_action: false
+
+  notify:
+    name: Notificacao
+    runs-on: ubuntu-latest
+    needs: [tests, docker, deploy, dast]
+    if: always()
+
+    steps:
+      - name: Resumo
+        run: |
+          echo "Testes: ${{ needs.tests.result }}"
+          echo "Docker + Trivy: ${{ needs.docker.result }}"
+          echo "Deploy Ansible: ${{ needs.deploy.result }}"
+          echo "DAST ZAP: ${{ needs.dast.result }}"
