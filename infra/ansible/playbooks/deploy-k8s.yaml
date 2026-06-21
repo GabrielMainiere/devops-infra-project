@@ -1,0 +1,64 @@
+- name: Aplicacao dos manifests do Kubernetes no cluster AKS
+  hosts: local
+  connection: local
+
+  vars:
+    aks_resource_group_name: weather-devops-dev-rg
+    aks_cluster_name: aks-weather-devops-dev
+    project_root: "{{ playbook_dir }}/../../.."
+
+  tasks:
+    - name: Obter credenciais do AKS
+      shell: |
+        az aks get-credentials \
+          --resource-group {{ aks_resource_group_name }} \
+          --name {{ aks_cluster_name }} \
+          --overwrite-existing
+
+    - name: Aplicar namespace
+      shell: kubectl apply -f "{{ project_root }}/infra/kubernetes/namespace.yaml"
+
+    - name: Aplicar ResourceQuota
+      shell: kubectl apply -f "{{ project_root }}/infra/kubernetes/resource-quota.yaml"
+
+    - name: Aplicar LimitRange
+      shell: kubectl apply -f "{{ project_root }}/infra/kubernetes/limit-range.yaml"
+
+    - name: Aplicar Deployment do frontend
+      shell: kubectl apply -f "{{ project_root }}/infra/kubernetes/deployment.yaml"
+
+    - name: Aplicar Service do frontend
+      shell: kubectl apply -f "{{ project_root }}/infra/kubernetes/service.yaml"
+
+    - name: Aplicar HPA do frontend
+      shell: kubectl apply -f "{{ project_root }}/infra/kubernetes/hpa.yaml"
+
+    - name: Aplicar Ingress do frontend
+      shell: kubectl apply -f "{{ project_root }}/infra/kubernetes/ingress.yaml"
+
+    - name: Aplicar manifests do banco de dados
+      shell: kubectl apply -f "{{ project_root }}/infra/kubernetes/database"
+
+    - name: Verificar pods do namespace weather-app
+      shell: kubectl get pods -n weather-app
+      register: pods_result
+
+    - name: Exibir pods criados
+      debug:
+        var: pods_result.stdout_lines
+
+    - name: Verificar ingress do frontend
+      shell: kubectl get ingress -n weather-app
+      register: ingress_result
+
+    - name: Exibir ingress criado
+      debug:
+        var: ingress_result.stdout_lines
+
+    - name: Verificar services do banco
+      shell: kubectl get svc -n weather-app
+      register: services_result
+
+    - name: Exibir services criados
+      debug:
+        var: services_result.stdout_lines
