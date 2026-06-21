@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 
 metadata:
-  name: weather-web
+  name: weather-api
   namespace: weather-app
 
 spec:
@@ -16,37 +16,51 @@ spec:
 
   selector:
     matchLabels:
-      app: weather-web
+      app: weather-api
+
   template:
     metadata:
       labels:
-        app: weather-web
+        app: weather-api
+
     spec:
       containers:
-        - name: weather-web
-          image: mainiere/weather-web:latest
+        - name: weather-api
+          image: mainiere/weather-api:latest
           imagePullPolicy: Always
+
           ports:
-            - containerPort: 80
+            - containerPort: 8002
+
+          volumeMounts:
+            - name: weather-api-env
+              mountPath: /app/.env
+              subPath: .env
+              readOnly: true
 
           resources:
             requests:
-              cpu: 50m
-              memory: 64Mi
-            limits:
-              cpu: 128m
+              cpu: 100m
               memory: 128Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi
 
           readinessProbe:
             httpGet:
-              path: /
-              port: 80
-            initialDelaySeconds: 5
+              path: /health
+              port: 8002
+            initialDelaySeconds: 10
             periodSeconds: 10
 
           livenessProbe:
             httpGet:
-              path: /
-              port: 80
-            initialDelaySeconds: 15
+              path: /health
+              port: 8002
+            initialDelaySeconds: 20
             periodSeconds: 20
+
+      volumes:
+        - name: weather-api-env
+          secret:
+            secretName: weather-api-secret

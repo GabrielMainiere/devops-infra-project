@@ -2,14 +2,15 @@ apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 
 metadata:
-  name: weather-web-hpa
+  name: weather-api-hpa
   namespace: weather-app
 
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: weather-web
+    name: weather-api
+
   minReplicas: 2
   maxReplicas: 4
 

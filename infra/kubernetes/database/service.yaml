@@ -21,11 +21,9 @@ kind: Service
 metadata:
   name: postgres-primary
   namespace: weather-app
-  annotations:
-    service.beta.kubernetes.io/azure-load-balancer-internal: "true"
 
 spec:
-  type: LoadBalancer
+  type: ClusterIP
   selector:
     app: postgres
     role: primary
