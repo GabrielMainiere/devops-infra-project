@@ -1,0 +1,97 @@
+- name: Deploy da API e Gateway na VM da Azure
+  hosts: apis
+  become: true
+
+  vars:
+    weather_api_image: mainiere/weather-api:latest
+    weather_api_container_name: weather-api
+    weather_api_port: 8002
+    weather_api_key: "{{ lookup('env', 'OPENWEATHER_API_KEY') }}"
+    weather_db_url: "{{ lookup('env', 'WEATHER_DB_URL') }}"
+
+  tasks:
+    - name: Atualizar pacotes do sistema
+      apt:
+        update_cache: yes
+        upgrade: dist
+
+    - name: Instalar dependencias necessarias
+      apt:
+        name:
+          - docker.io
+          - nginx
+          - ca-certificates
+        state: present
+
+    - name: Garantir que o Docker esta ativo
+      service:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Garantir que o Nginx esta ativo
+      service:
+        name: nginx
+        state: started
+        enabled: yes
+
+    - name: Criar diretorio da API
+      file:
+        path: /opt/weather-api
+        state: directory
+        mode: "0755"
+
+    - name: Criar arquivo .env da API
+      copy:
+        dest: /opt/weather-api/.env
+        mode: "0600"
+        content: |
+          API_KEY={{ weather_api_key }}
+          DB_URL={{ weather_db_url }}
+      no_log: true
+
+    - name: Baixar imagem Docker da API
+      shell: docker pull {{ weather_api_image }}
+
+    - name: Remover container antigo da API
+      shell: docker rm -f {{ weather_api_container_name }} || true
+
+    - name: Subir container da API
+      shell: |
+        docker run -d \
+          --name {{ weather_api_container_name }} \
+          --restart unless-stopped \
+          -p 127.0.0.1:{{ weather_api_port }}:8002 \
+          -v /opt/weather-api/.env:/app/.env:ro \
+          {{ weather_api_image }}
+
+    - name: Copiar configuracao do Nginx Gateway
+      copy:
+        src: ../../gateway/nginx.conf
+        dest: /etc/nginx/sites-available/weather-gateway
+        mode: "0644"
+
+    - name: Remover site padrao do Nginx
+      file:
+        path: /etc/nginx/sites-enabled/default
+        state: absent
+
+    - name: Habilitar site do Gateway
+      file:
+        src: /etc/nginx/sites-available/weather-gateway
+        dest: /etc/nginx/sites-enabled/weather-gateway
+        state: link
+        force: yes
+
+    - name: Validar configuracao do Nginx
+      shell: nginx -t
+
+    - name: Reiniciar Nginx
+      service:
+        name: nginx
+        state: restarted
+
+    - name: Validar health check da API
+      uri:
+        url: http://127.0.0.1:8002/health
+        status_code: 200
