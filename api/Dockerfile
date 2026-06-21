@@ -13,7 +13,7 @@ FROM alpine:3.22
 
 WORKDIR /app
 
-RUN apk --no-cache add ca-certificates
+RUN apk --no-cache upgrade && apk --no-cache add ca-certificates
 
 COPY --from=builder /app/main .
 
