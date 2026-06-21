@@ -86,7 +86,7 @@ jobs:
   docker:
     name: Docker, Trivy e Push
     runs-on: ubuntu-latest
-    needs: [tests]
+    needs: [tests, sonar]
     if: github.ref == 'refs/heads/main'
 
     steps:
@@ -130,7 +130,6 @@ jobs:
     env:
       ANSIBLE_HOST_KEY_CHECKING: "False"
       OPENWEATHER_API_KEY: ${{ secrets.OPENWEATHER_API_KEY }}
-      WEATHER_DB_URL: ${{ secrets.WEATHER_DB_URL }}
 
     steps:
       - uses: actions/checkout@v4
@@ -167,12 +166,30 @@ jobs:
           localhost ansible_connection=local
           EOF
 
-      - name: Deploy Kubernetes
+      - name: Gerar Secret da API para o AKS
+        run: |
+          cat > infra/kubernetes/api-secret.yaml <<EOF
+          apiVersion: v1
+          kind: Secret
+
+          metadata:
+            name: weather-api-secret
+            namespace: weather-app
+
+          type: Opaque
+
+          stringData:
+            .env: |
+              API_KEY=${OPENWEATHER_API_KEY}
+              DB_URL=postgres://postgres:postgres@postgres-primary:5432/weather_app?sslmode=disable
+          EOF
+
+      - name: Deploy API no AKS
         run: |
           cd infra/ansible
           ansible-playbook -i hosts.ci.ini playbooks/deploy-k8s.yaml
 
-      - name: Deploy API e Gateway
+      - name: Deploy Frontend e Gateway na VM
         run: |
           cd infra/ansible
           ansible-playbook -i hosts.ci.ini playbooks/deploy-docker.yaml
@@ -194,7 +211,7 @@ jobs:
   notify:
     name: Notificacao
     runs-on: ubuntu-latest
-    needs: [tests, docker, deploy, dast]
+    needs: [tests, sonar, docker, deploy, dast]
     if: always()
 
     steps:
@@ -203,4 +220,5 @@ jobs:
           echo "Testes: ${{ needs.tests.result }}"
           echo "Docker + Trivy: ${{ needs.docker.result }}"
           echo "Deploy Ansible: ${{ needs.deploy.result }}"
+          echo "SonarQube: ${{ needs.sonar.result }}"
           echo "DAST ZAP: ${{ needs.dast.result }}"
