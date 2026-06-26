@@ -20,6 +20,14 @@ No acesso externo, a API fica disponivel pelo gateway com o prefixo `/api`:
 /api/getweather/:city
 ```
 
+O ambiente de homologacao fica publicado pelo gateway com o prefixo `/hom`:
+
+```text
+/hom/
+/hom/api/health
+/hom/api/getweather/:city
+```
+
 ## Infraestrutura
 
 Principais diretorios:
@@ -55,9 +63,16 @@ O AKS executa:
 - `Service` interno para a API.
 - `Ingress` interno para receber chamadas vindas do gateway.
 - `HorizontalPodAutoscaler` com target de CPU em 60%, como pedido.
-- `ResourceQuota` e `LimitRange` no namespace `weather-app`.
+- `ResourceQuota` e `LimitRange` nos namespaces `weather-hom` e `weather-prod`.
 - Probes de liveness e readiness na rota `/health`.
 - PostgreSQL com `StatefulSet`, primary e replicas de leitura.
+
+O projeto usa dois namespaces no AKS:
+
+```text
+weather-hom    ambiente de homologacao, usado no DAST
+weather-prod   ambiente de producao
+```
 
 ## Banco de dados
 
@@ -122,7 +137,7 @@ Etapas principais:
 - Trivy para scan da imagem Docker da API.
 - Build e push das imagens para o Docker Hub.
 - Deploy via Ansible.
-- OWASP ZAP baseline contra o gateway.
+- OWASP ZAP baseline contra o gateway de homologacao.
 - Resumo final por `echo`.
 
 O arquivo `infra/kubernetes/api-secret.yaml` nao e versionado. No CI ele e gerado a partir da secret `OPENWEATHER_API_KEY`.
@@ -136,7 +151,7 @@ KUBE_CONFIG_DATA
 AZURE_VM_SSH_PRIVATE_KEY
 API_GATEWAY_PUBLIC_IP
 OPENWEATHER_API_KEY
-GATEWAY_URL
+GATEWAY_HOM_URL
 ```
 
 ## Validacao
@@ -147,6 +162,8 @@ Com a infraestrutura em execucao, os testes principais sao:
 curl http://<GATEWAY_PUBLIC_IP>/
 curl http://<GATEWAY_PUBLIC_IP>/api/health
 curl http://<GATEWAY_PUBLIC_IP>/api/getweather/salvador
+curl http://<GATEWAY_PUBLIC_IP>/hom/
+curl http://<GATEWAY_PUBLIC_IP>/hom/api/health
 ```
 
 Resultados esperados:
@@ -154,13 +171,18 @@ Resultados esperados:
 - `/` retorna o frontend.
 - `/api/health` retorna `"All is working!"`.
 - `/api/getweather/salvador` retorna um JSON com dados de clima.
+- `/hom/` e `/hom/api/health` validam o ambiente de homologacao.
 
 Para validar o AKS:
 
 ```bash
 kubectl get nodes
-kubectl get pods -n weather-app
-kubectl get svc -n weather-app
-kubectl get ingress -n weather-app
-kubectl get hpa -n weather-app
+kubectl get pods -n weather-hom
+kubectl get svc -n weather-hom
+kubectl get ingress -n weather-hom
+kubectl get hpa -n weather-hom
+kubectl get pods -n weather-prod
+kubectl get svc -n weather-prod
+kubectl get ingress -n weather-prod
+kubectl get hpa -n weather-prod
 ```
