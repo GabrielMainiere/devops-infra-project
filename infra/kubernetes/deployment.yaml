@@ -3,7 +3,6 @@ kind: Deployment
 
 metadata:
   name: weather-api
-  namespace: weather-app
 
 spec:
   replicas: 2

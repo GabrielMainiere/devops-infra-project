@@ -3,7 +3,6 @@ kind: LimitRange
 
 metadata:
   name: weather-limits
-  namespace: weather-app
 
 spec:
   limits:

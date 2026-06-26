@@ -3,7 +3,6 @@ kind: HorizontalPodAutoscaler
 
 metadata:
   name: weather-api-hpa
-  namespace: weather-app
 
 spec:
   scaleTargetRef:

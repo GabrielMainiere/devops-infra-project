@@ -1,0 +1,19 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+
+metadata:
+  name: weather-api
+
+spec:
+  ingressClassName: webapprouting.kubernetes.azure.com
+  rules:
+    - host: hom.weather.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: weather-api
+                port:
+                  number: 8002

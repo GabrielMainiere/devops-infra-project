@@ -3,7 +3,6 @@ kind: Service
 
 metadata:
   name: weather-api
-  namespace: weather-app
 
 spec:
   type: ClusterIP

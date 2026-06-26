@@ -3,7 +3,6 @@ kind: ResourceQuota
 
 metadata:
   name: weather-quota
-  namespace: weather-app
 
 spec:
   hard:

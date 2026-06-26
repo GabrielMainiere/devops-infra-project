@@ -3,7 +3,6 @@ kind: Service
 
 metadata:
   name: postgres-primary-headless
-  namespace: weather-app
 
 spec:
   clusterIP: None
@@ -20,7 +19,6 @@ kind: Service
 
 metadata:
   name: postgres-primary
-  namespace: weather-app
 
 spec:
   type: ClusterIP
@@ -37,7 +35,6 @@ kind: Service
 
 metadata:
   name: postgres-read-headless
-  namespace: weather-app
 
 spec:
   clusterIP: None
@@ -54,7 +51,6 @@ kind: Service
 
 metadata:
   name: postgres-read
-  namespace: weather-app
 
 spec:
   type: ClusterIP

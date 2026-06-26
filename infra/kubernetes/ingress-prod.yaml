@@ -3,12 +3,12 @@ kind: Ingress
 
 metadata:
   name: weather-api
-  namespace: weather-app
 
 spec:
   ingressClassName: webapprouting.kubernetes.azure.com
   rules:
-    - http:
+    - host: prod.weather.local
+      http:
         paths:
           - path: /
             pathType: Prefix

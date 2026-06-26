@@ -3,7 +3,6 @@ kind: StatefulSet
 
 metadata:
   name: postgres-read
-  namespace: weather-app
 
 spec:
   serviceName: postgres-read-headless
