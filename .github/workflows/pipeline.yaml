@@ -174,7 +174,6 @@ jobs:
 
           metadata:
             name: weather-api-secret
-            namespace: weather-app
 
           type: Opaque
 
@@ -204,7 +203,7 @@ jobs:
       - name: OWASP ZAP baseline contra gateway
         uses: zaproxy/action-baseline@v0.14.0
         with:
-          target: ${{ secrets.GATEWAY_URL }}
+          target: ${{ secrets.GATEWAY_HOM_URL }}
           allow_issue_writing: false
           fail_action: false
 
