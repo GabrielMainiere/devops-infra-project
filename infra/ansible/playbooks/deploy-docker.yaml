@@ -4,8 +4,11 @@
 
   vars:
     weather_web_image: mainiere/weather-web:latest
-    weather_web_container_name: weather-web
-    weather_web_port: 8080
+    weather_web_prod_container_name: weather-web-prod
+    weather_web_hom_container_name: weather-web-hom
+    weather_web_prod_port: 8080
+    weather_web_hom_port: 8081
+    aks_gateway_internal_ip: 10.20.2.62
 
   tasks:
     - name: Atualizar pacotes do sistema
@@ -36,15 +39,23 @@
     - name: Baixar imagem Docker do frontend
       shell: docker pull {{ weather_web_image }}
 
-    - name: Remover container antigo do frontend
-      shell: docker rm -f {{ weather_web_container_name }} || true
+    - name: Remover containers antigos do frontend
+      shell: docker rm -f weather-web {{ weather_web_prod_container_name }} {{ weather_web_hom_container_name }} || true
 
-    - name: Subir container do frontend
+    - name: Subir container do frontend de producao
       shell: |
         docker run -d \
-          --name {{ weather_web_container_name }} \
+          --name {{ weather_web_prod_container_name }} \
           --restart unless-stopped \
-          -p 127.0.0.1:{{ weather_web_port }}:80 \
+          -p 127.0.0.1:{{ weather_web_prod_port }}:80 \
+          {{ weather_web_image }}
+
+    - name: Subir container do frontend de homologacao
+      shell: |
+        docker run -d \
+          --name {{ weather_web_hom_container_name }} \
+          --restart unless-stopped \
+          -p 127.0.0.1:{{ weather_web_hom_port }}:80 \
           {{ weather_web_image }}
 
     - name: Remover container antigo da API na VM
@@ -76,12 +87,46 @@
         name: nginx
         state: restarted
 
-    - name: Validar frontend local
+    - name: Validar frontend local de producao
       uri:
         url: http://127.0.0.1:8080
         status_code: 200
 
-    - name: Validar API via gateway interno do AKS
+    - name: Validar frontend local de homologacao
       uri:
-        url: http://10.20.2.62/health
+        url: http://127.0.0.1:8081
         status_code: 200
+
+    - name: Validar gateway local de producao
+      uri:
+        url: http://127.0.0.1/
+        status_code: 200
+
+    - name: Validar API de producao pelo gateway local
+      uri:
+        url: http://127.0.0.1/api/health
+        status_code: 200
+
+    - name: Validar gateway local de homologacao
+      uri:
+        url: http://127.0.0.1/hom/
+        status_code: 200
+
+    - name: Validar API de homologacao pelo gateway local
+      uri:
+        url: http://127.0.0.1/hom/api/health
+        status_code: 200
+
+    - name: Validar API de producao via gateway interno do AKS
+      uri:
+        url: http://{{ aks_gateway_internal_ip }}/health
+        status_code: 200
+        headers:
+          Host: prod.weather.local
+
+    - name: Validar API de homologacao via gateway interno do AKS
+      uri:
+        url: http://{{ aks_gateway_internal_ip }}/health
+        status_code: 200
+        headers:
+          Host: hom.weather.local

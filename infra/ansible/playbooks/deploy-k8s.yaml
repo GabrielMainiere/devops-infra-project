@@ -9,61 +9,141 @@
     - name: Verificar acesso ao AKS
       shell: kubectl get nodes
 
-    - name: Aplicar namespace
+    - name: Aplicar namespaces de homologacao e producao
       shell: kubectl apply -f "{{ project_root }}/infra/kubernetes/namespace.yaml"
 
-    - name: Aplicar ResourceQuota
-      shell: kubectl apply -f "{{ project_root }}/infra/kubernetes/resource-quota.yaml"
+    - name: Aplicar ResourceQuota em homologacao
+      shell: kubectl apply -n weather-hom -f "{{ project_root }}/infra/kubernetes/resource-quota.yaml"
 
-    - name: Aplicar LimitRange
-      shell: kubectl apply -f "{{ project_root }}/infra/kubernetes/limit-range.yaml"
+    - name: Aplicar LimitRange em homologacao
+      shell: kubectl apply -n weather-hom -f "{{ project_root }}/infra/kubernetes/limit-range.yaml"
 
-    - name: Aplicar Secret da API
-      shell: kubectl apply -f "{{ project_root }}/infra/kubernetes/api-secret.yaml"
+    - name: Aplicar Secret da API em homologacao
+      shell: kubectl apply -n weather-hom -f "{{ project_root }}/infra/kubernetes/api-secret.yaml"
 
-    - name: Aplicar manifests do banco de dados
-      shell: kubectl apply -f "{{ project_root }}/infra/kubernetes/database"
+    - name: Aplicar banco de dados em homologacao
+      shell: kubectl apply -n weather-hom -f "{{ project_root }}/infra/kubernetes/database"
 
-    - name: Aplicar Deployment da API
-      shell: kubectl apply -f "{{ project_root }}/infra/kubernetes/deployment.yaml"
+    - name: Aguardar primary do banco em homologacao
+      shell: kubectl rollout status statefulset postgres-primary -n weather-hom --timeout=180s
 
-    - name: Aplicar Service da API
-      shell: kubectl apply -f "{{ project_root }}/infra/kubernetes/service.yaml"
+    - name: Aguardar replicas de leitura em homologacao
+      shell: kubectl rollout status statefulset postgres-read -n weather-hom --timeout=240s
 
-    - name: Aplicar HPA da API
-      shell: kubectl apply -f "{{ project_root }}/infra/kubernetes/hpa.yaml"
+    - name: Aplicar Deployment da API em homologacao
+      shell: kubectl apply -n weather-hom -f "{{ project_root }}/infra/kubernetes/deployment.yaml"
 
-    - name: Aplicar Ingress da API
-      shell: kubectl apply -f "{{ project_root }}/infra/kubernetes/ingress.yaml"
+    - name: Aplicar Service da API em homologacao
+      shell: kubectl apply -n weather-hom -f "{{ project_root }}/infra/kubernetes/service.yaml"
 
-    - name: Verificar pods do namespace weather-app
-      shell: kubectl get pods -n weather-app
-      register: pods_result
+    - name: Aplicar HPA da API em homologacao
+      shell: kubectl apply -n weather-hom -f "{{ project_root }}/infra/kubernetes/hpa.yaml"
 
-    - name: Exibir pods criados
+    - name: Aplicar Ingress da API em homologacao
+      shell: kubectl apply -n weather-hom -f "{{ project_root }}/infra/kubernetes/ingress-hom.yaml"
+
+    - name: Reiniciar Deployment da API em homologacao
+      shell: kubectl rollout restart deployment weather-api -n weather-hom
+
+    - name: Aguardar rollout da API em homologacao
+      shell: kubectl rollout status deployment weather-api -n weather-hom --timeout=180s
+
+    - name: Aplicar ResourceQuota em producao
+      shell: kubectl apply -n weather-prod -f "{{ project_root }}/infra/kubernetes/resource-quota.yaml"
+
+    - name: Aplicar LimitRange em producao
+      shell: kubectl apply -n weather-prod -f "{{ project_root }}/infra/kubernetes/limit-range.yaml"
+
+    - name: Aplicar Secret da API em producao
+      shell: kubectl apply -n weather-prod -f "{{ project_root }}/infra/kubernetes/api-secret.yaml"
+
+    - name: Aplicar banco de dados em producao
+      shell: kubectl apply -n weather-prod -f "{{ project_root }}/infra/kubernetes/database"
+
+    - name: Aguardar primary do banco em producao
+      shell: kubectl rollout status statefulset postgres-primary -n weather-prod --timeout=180s
+
+    - name: Aguardar replicas de leitura em producao
+      shell: kubectl rollout status statefulset postgres-read -n weather-prod --timeout=240s
+
+    - name: Aplicar Deployment da API em producao
+      shell: kubectl apply -n weather-prod -f "{{ project_root }}/infra/kubernetes/deployment.yaml"
+
+    - name: Aplicar Service da API em producao
+      shell: kubectl apply -n weather-prod -f "{{ project_root }}/infra/kubernetes/service.yaml"
+
+    - name: Aplicar HPA da API em producao
+      shell: kubectl apply -n weather-prod -f "{{ project_root }}/infra/kubernetes/hpa.yaml"
+
+    - name: Aplicar Ingress da API em producao
+      shell: kubectl apply -n weather-prod -f "{{ project_root }}/infra/kubernetes/ingress-prod.yaml"
+
+    - name: Reiniciar Deployment da API em producao
+      shell: kubectl rollout restart deployment weather-api -n weather-prod
+
+    - name: Aguardar rollout da API em producao
+      shell: kubectl rollout status deployment weather-api -n weather-prod --timeout=180s
+
+    - name: Verificar pods de homologacao
+      shell: kubectl get pods -n weather-hom
+      register: hom_pods_result
+
+    - name: Exibir pods de homologacao
       debug:
-        var: pods_result.stdout_lines
+        var: hom_pods_result.stdout_lines
 
-    - name: Verificar ingress da API
-      shell: kubectl get ingress -n weather-app
-      register: ingress_result
+    - name: Verificar pods de producao
+      shell: kubectl get pods -n weather-prod
+      register: prod_pods_result
 
-    - name: Exibir ingress criado
+    - name: Exibir pods de producao
       debug:
-        var: ingress_result.stdout_lines
+        var: prod_pods_result.stdout_lines
 
-    - name: Verificar services do namespace weather-app
-      shell: kubectl get svc -n weather-app
-      register: services_result
+    - name: Verificar ingress de homologacao
+      shell: kubectl get ingress -n weather-hom
+      register: hom_ingress_result
 
-    - name: Exibir services criados
+    - name: Exibir ingress de homologacao
       debug:
-        var: services_result.stdout_lines
+        var: hom_ingress_result.stdout_lines
 
-    - name: Validar health check da API no AKS
-      shell: kubectl run curl-test -n weather-app --rm -i --image=curlimages/curl --restart=Never -- curl -s http://weather-api:8002/health
-      register: api_health_result
+    - name: Verificar ingress de producao
+      shell: kubectl get ingress -n weather-prod
+      register: prod_ingress_result
 
-    - name: Exibir resultado do health check
+    - name: Exibir ingress de producao
       debug:
-        var: api_health_result.stdout_lines
+        var: prod_ingress_result.stdout_lines
+
+    - name: Verificar services de homologacao
+      shell: kubectl get svc -n weather-hom
+      register: hom_services_result
+
+    - name: Exibir services de homologacao
+      debug:
+        var: hom_services_result.stdout_lines
+
+    - name: Verificar services de producao
+      shell: kubectl get svc -n weather-prod
+      register: prod_services_result
+
+    - name: Exibir services de producao
+      debug:
+        var: prod_services_result.stdout_lines
+
+    - name: Validar health check da API em homologacao
+      shell: kubectl run curl-test-hom -n weather-hom --rm -i --image=curlimages/curl --restart=Never -- curl -s http://weather-api:8002/health
+      register: hom_api_health_result
+
+    - name: Exibir health check de homologacao
+      debug:
+        var: hom_api_health_result.stdout_lines
+
+    - name: Validar health check da API em producao
+      shell: kubectl run curl-test-prod -n weather-prod --rm -i --image=curlimages/curl --restart=Never -- curl -s http://weather-api:8002/health
+      register: prod_api_health_result
+
+    - name: Exibir health check de producao
+      debug:
+        var: prod_api_health_result.stdout_lines
